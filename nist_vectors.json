@@ -1,0 +1,6 @@
+{
+  "algo": "ecdsa-p256",
+  "msg": "kat_msg.bin",
+  "sig": "kat_sig.bin",
+  "pub": "kat_pub.pem"
+}

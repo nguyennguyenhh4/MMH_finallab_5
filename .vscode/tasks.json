@@ -1,0 +1,136 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        // ---------------------------
+        // MinGW (g++) build task
+        // ---------------------------
+        {
+            "type": "shell",
+            "label": "C/C++: g++.exe build active file (MinGW)",
+            "command": "C:\\msys64\\mingw64\\bin\\g++.exe", //touched 1
+            "args": [
+                "-g2",
+                "-O3",
+                "-DNDEBUG",
+                "${file}",
+                "-o",
+                "${fileDirname}\\${fileBasenameNoExtension}gcc.exe", //file compiler
+                "-D_WIN32_WINNT=0x0A00", //win 11 touched 3
+                "-lpthread",
+                "-LC:\\msys64\\home\\ADMIN\\cryptopp\\lib\\cryptopp\\gcc", //touched 2 lib folder (chi ra noi de thu vien)
+                "-LD:\\college\\Ki_4_25-26\\mat_ma_hoc\\Labs\\cryptoLib\\openssl\\lib64",
+                "-l:libcryptopp.a", // lib files -lcryptopp
+                "-l:libcrypto.a",
+                "-lws2_32", // winsock
+                "-lcrypt32",
+                "-IC:\\msys64\\home\\ADMIN\\cryptopp\\include", //touched 4 header folder
+                "-ID:\\college\\Ki_4_25-26\\mat_ma_hoc\\Labs\\cryptoLib\\openssl\\include",
+                "-Wall"
+            ],
+            "options": {
+                "cwd": "C:\\msys64\\mingw64\\bin" //touched 5
+            },
+            "problemMatcher": ["$gcc"],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "detail": "compiler: MinGW g++.exe"
+        },
+
+
+        // ---------------------------
+        // MSVC (cl.exe) build task
+        // ---------------------------
+        {
+            "type": "shell",
+            "label": "C/C++: cl.exe build active file (MSVC)",
+            "command": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+            "args": [
+                "/EHsc",
+                "/O2",
+                "/DNDEBUG",
+                "/MTd", //(Debug static CRT) or /MDd (Debug dynamic CRT)
+                "/Fe:${fileDirname}\\${fileBasenameNoExtension}msvc.exe",
+                "${file}",
+                "/I", "C:\\msys64\\home\\ADMIN\\cryptopp\\include", //touched 1
+                "/link",
+                "/LIBPATH:C:\\msys64\\home\\ADMIN\\cryptopp\\x64\\Output\\Debug", //touched 2
+                "cryptlib.lib"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": ["$msCompile"],
+            "group": "build",
+            "detail": "compiler: Microsoft cl.exe"
+        },
+
+
+        // ---------------------------
+        // Clang++ build task
+        // ---------------------------
+        {
+            "type": "shell",
+            "label": "C/C++: clang++ build active file (Clang)",
+            "command": "C:\\msys64\\mingw64\\bin\\clang++.exe", //touched 1
+            "args": [
+                "-std=c++17",
+                "-O3",
+                "-DNDEBUG",
+                "${file}",
+                "-o",
+                "${fileDirname}\\${fileBasenameNoExtension}clang.exe",
+                "-D_WIN32_WINNT=0x0A00",    //touched 2
+                "-lpthread",
+                "-LC:\\msys64\\home\\ADMIN\\cryptopp\\lib\\cryptopp\\clang",    //touched 3
+                "-l:libcryptopp.a",
+                "-IC:\\msys64\\home\\ADMIN\\cryptopp\\include",   //touched 4
+                "-Wall",
+                "-static" // <-- THÊM CỜ NÀY VÀO ĐÂY
+            ],
+            "options": {
+                "cwd": "C:\\msys64\\mingw64\\bin"   //touched 5
+            },
+            "problemMatcher": ["$gcc"],
+            "group": "build",
+            "detail": "compiler: Clang++"
+        },
+        // ---------------------------
+        // MinGW build dll
+        // ---------------------------
+        {
+            "type": "shell",
+            "label": "Build DLL (MinGW)",
+            "command": "C:\\msys64\\mingw64\\bin\\g++.exe",
+            "args": [
+                "-shared",
+                "-g2",
+                "-O3",
+                "-DNDEBUG",
+                "-DLIB_EXPORTS",
+                "${file}",
+                "-o",
+                "${fileDirname}\\${fileBasenameNoExtension}_gcc.dll",
+                "-D_WIN32_WINNT=0x0A00",
+                "-DLIB_EXPORTS",    // call macro
+                "-lpthread",
+                "-LD:\\college\\Ki_4_25-26\\mat_ma_hoc\\Labs\\cryptoLib\\openssl\\lib64",
+                "-l:libcrypto.a",
+                "-ID:\\college\\Ki_4_25-26\\mat_ma_hoc\\Labs\\cryptoLib\\openssl\\include",
+                "-lws2_32", // winsock
+                "-lcrypt32",
+                "-Wall"
+            ],
+            "options": {
+                "cwd": "C:\\msys64\\mingw64\\bin"
+            },
+            "problemMatcher": ["$gcc"],
+            "group": "build",
+            "detail": "compiler: MinGW g++ DLL"
+        }
+    ]
+}
+
+
+
