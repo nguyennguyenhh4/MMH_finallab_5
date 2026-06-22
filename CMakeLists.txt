@@ -15,30 +15,30 @@ if(NOT OPENSSL_FOUND)
   find_library(OPENSSL_SSL_LIB
     NAMES ssl libssl
     PATHS
-      "D:/college/Ki_4_25-26/mat_ma_hoc/Labs/cryptoLib/openssl/lib64"
+      "D:/CryptoLibs/openssl321/lib"
+      "C:/msys64/mingw64/lib"
       /usr/lib /usr/local/lib
       /usr/lib/x86_64-linux-gnu
-      "C:/msys64/mingw64/lib"
-      "C:/msys64/home/ADMIN/openssl/lib"
   )
+  
   find_library(OPENSSL_CRYPTO_LIB
     NAMES crypto libcrypto
     PATHS
-      "D:/college/Ki_4_25-26/mat_ma_hoc/Labs/cryptoLib/openssl/lib64"
+      "D:/CryptoLibs/openssl321/lib"
+      "C:/msys64/mingw64/lib"
       /usr/lib /usr/local/lib
       /usr/lib/x86_64-linux-gnu
-      "C:/msys64/mingw64/lib"
-      "C:/msys64/home/ADMIN/openssl/lib"
   )
+  
   find_path(OPENSSL_INCLUDE
     NAMES openssl/evp.h
     PATHS
-      "D:/college/Ki_4_25-26/mat_ma_hoc/Labs/cryptoLib/openssl/include"
+      "D:/CryptoLibs/openssl321/include"
+      "C:/msys64/mingw64/include"
       /usr/include
       /usr/local/include
-      "C:/msys64/mingw64/include"
-      "C:/msys64/home/ADMIN/openssl/include"
   )
+  
   if(NOT OPENSSL_SSL_LIB OR NOT OPENSSL_CRYPTO_LIB OR NOT OPENSSL_INCLUDE)
     message(FATAL_ERROR
       "OpenSSL not found.\n"

@@ -9,13 +9,16 @@
 #include <cmath>
 #include <filesystem>
 
-// Assuming these are exported from digital_signatures.cpp
 extern "C" bool generate_ecdsa_keypair(const char* curve_name, const char* private_key_path, const char* public_key_path) noexcept;
 extern "C" bool generate_rsa_keypair(int bits, const char* private_key_path, const char* public_key_path) noexcept;
 extern "C" bool sign_ecdsa(const char* private_key_path, const char* message_path, const char* signature_path) noexcept;
 extern "C" bool sign_rsapss(const char* private_key_path, const char* message_path, const char* signature_path) noexcept;
 extern "C" bool verify_ecdsa(const char* public_key_path, const char* message_path, const char* signature_path) noexcept;
 extern "C" bool verify_rsapss(const char* public_key_path, const char* message_path, const char* signature_path) noexcept;
+
+// Khai bao them ham P-384
+extern "C" bool sign_ecdsa_p384(const char* private_key_path, const char* message_path, const char* signature_path) noexcept;
+extern "C" bool verify_ecdsa_p384(const char* public_key_path, const char* message_path, const char* signature_path) noexcept;
 
 using namespace std;
 using Clock = chrono::high_resolution_clock;
@@ -103,7 +106,8 @@ int main(int argc, char* argv[]) {
         {"8 MB", 8 * 1024 * 1024}
     };
 
-    vector<string> algos = {"ecdsa-p256", "rsa-pss-3072"};
+    // DA BO SUNG ecdsa-p384 vao danh sach
+    vector<string> algos = {"ecdsa-p256", "ecdsa-p384", "rsa-pss-3072"};
     vector<RawSample> raw_data;
     vector<tuple<string, string, string, Stats>> summary_rows;
 
@@ -126,6 +130,7 @@ int main(int argc, char* argv[]) {
             // Warm-up
             for (int i = 0; i < N_WARMUP; ++i) {
                 if (algo == "ecdsa-p256") generate_ecdsa_keypair("prime256v1", priv_file.c_str(), pub_file.c_str());
+                else if (algo == "ecdsa-p384") generate_ecdsa_keypair("secp384r1", priv_file.c_str(), pub_file.c_str());
                 else generate_rsa_keypair(3072, priv_file.c_str(), pub_file.c_str());
             }
 
@@ -133,6 +138,7 @@ int main(int argc, char* argv[]) {
             for (int i = 0; i < N_RUNS; ++i) {
                 auto t0 = Clock::now();
                 if (algo == "ecdsa-p256") generate_ecdsa_keypair("prime256v1", priv_file.c_str(), pub_file.c_str());
+                else if (algo == "ecdsa-p384") generate_ecdsa_keypair("secp384r1", priv_file.c_str(), pub_file.c_str());
                 else generate_rsa_keypair(3072, priv_file.c_str(), pub_file.c_str());
                 auto t1 = Clock::now();
                 double ms = chrono::duration<double, milli>(t1 - t0).count();
@@ -143,6 +149,7 @@ int main(int argc, char* argv[]) {
 
             // Make sure we have a valid key for sign/verify
             if (algo == "ecdsa-p256") generate_ecdsa_keypair("prime256v1", priv_file.c_str(), pub_file.c_str());
+            else if (algo == "ecdsa-p384") generate_ecdsa_keypair("secp384r1", priv_file.c_str(), pub_file.c_str());
             else generate_rsa_keypair(3072, priv_file.c_str(), pub_file.c_str());
 
             // 2. Benchmark Sign
@@ -152,6 +159,7 @@ int main(int argc, char* argv[]) {
             // Warm-up
             for (int i = 0; i < N_WARMUP; ++i) {
                 if (algo == "ecdsa-p256") sign_ecdsa(priv_file.c_str(), msg_file.c_str(), sig_file.c_str());
+                else if (algo == "ecdsa-p384") sign_ecdsa_p384(priv_file.c_str(), msg_file.c_str(), sig_file.c_str());
                 else sign_rsapss(priv_file.c_str(), msg_file.c_str(), sig_file.c_str());
             }
 
@@ -159,6 +167,7 @@ int main(int argc, char* argv[]) {
             for (int i = 0; i < N_RUNS; ++i) {
                 auto t0 = Clock::now();
                 if (algo == "ecdsa-p256") sign_ecdsa(priv_file.c_str(), msg_file.c_str(), sig_file.c_str());
+                else if (algo == "ecdsa-p384") sign_ecdsa_p384(priv_file.c_str(), msg_file.c_str(), sig_file.c_str());
                 else sign_rsapss(priv_file.c_str(), msg_file.c_str(), sig_file.c_str());
                 auto t1 = Clock::now();
                 double ms = chrono::duration<double, milli>(t1 - t0).count();
@@ -170,6 +179,7 @@ int main(int argc, char* argv[]) {
             // 3. Benchmark Verify
             // Ensure we have a valid signature
             if (algo == "ecdsa-p256") sign_ecdsa(priv_file.c_str(), msg_file.c_str(), sig_file.c_str());
+            else if (algo == "ecdsa-p384") sign_ecdsa_p384(priv_file.c_str(), msg_file.c_str(), sig_file.c_str());
             else sign_rsapss(priv_file.c_str(), msg_file.c_str(), sig_file.c_str());
 
             cout << "  -> Verify (Warmup: " << N_WARMUP << ", Benchmark: " << N_RUNS << ")...\n";
@@ -178,6 +188,7 @@ int main(int argc, char* argv[]) {
             // Warm-up
             for (int i = 0; i < N_WARMUP; ++i) {
                 if (algo == "ecdsa-p256") verify_ecdsa(pub_file.c_str(), msg_file.c_str(), sig_file.c_str());
+                else if (algo == "ecdsa-p384") verify_ecdsa_p384(pub_file.c_str(), msg_file.c_str(), sig_file.c_str());
                 else verify_rsapss(pub_file.c_str(), msg_file.c_str(), sig_file.c_str());
             }
 
@@ -185,6 +196,7 @@ int main(int argc, char* argv[]) {
             for (int i = 0; i < N_RUNS; ++i) {
                 auto t0 = Clock::now();
                 if (algo == "ecdsa-p256") verify_ecdsa(pub_file.c_str(), msg_file.c_str(), sig_file.c_str());
+                else if (algo == "ecdsa-p384") verify_ecdsa_p384(pub_file.c_str(), msg_file.c_str(), sig_file.c_str());
                 else verify_rsapss(pub_file.c_str(), msg_file.c_str(), sig_file.c_str());
                 auto t1 = Clock::now();
                 double ms = chrono::duration<double, milli>(t1 - t0).count();

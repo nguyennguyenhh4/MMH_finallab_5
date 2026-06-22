@@ -118,6 +118,9 @@ int curve_nid_from_name(const std::string& curve) {
     if (curve == "prime256v1" || curve == "secp256r1" || curve == "P-256" || curve == "p-256") {
         return NID_X9_62_prime256v1;
     }
+    if (curve == "secp384r1" || curve == "P-384" || curve == "p-384") {
+        return NID_secp384r1;
+    }
     return OBJ_txt2nid(curve.c_str());
 }
 
@@ -184,7 +187,8 @@ bool sign_impl(const std::string& mode, const std::string& private_key_path, con
 
     EVP_MD_CTX_ptr ctx(EVP_MD_CTX_new(), EVP_MD_CTX_free);
     EVP_PKEY_CTX* pkey_ctx = nullptr;
-    if (!ctx || EVP_DigestSignInit(ctx.get(), &pkey_ctx, EVP_sha256(), nullptr, key.get()) <= 0) {
+    const EVP_MD* hash_algo = (mode == "ecdsa-p384") ? EVP_sha384() : EVP_sha256();
+    if (!ctx || EVP_DigestSignInit(ctx.get(), &pkey_ctx, hash_algo, nullptr, key.get()) <= 0) {
         set_openssl_error("DigestSignInit failed");
         return false;
     }
@@ -226,7 +230,8 @@ bool verify_impl(const std::string& mode, const std::string& public_key_path, co
 
     EVP_MD_CTX_ptr ctx(EVP_MD_CTX_new(), EVP_MD_CTX_free);
     EVP_PKEY_CTX* pkey_ctx = nullptr;
-    if (!ctx || EVP_DigestVerifyInit(ctx.get(), &pkey_ctx, EVP_sha256(), nullptr, key.get()) <= 0) {
+    const EVP_MD* hash_algo = (mode == "ecdsa-p384") ? EVP_sha384() : EVP_sha256();
+    if (!ctx || EVP_DigestVerifyInit(ctx.get(), &pkey_ctx, hash_algo, nullptr, key.get()) <= 0) {
         set_openssl_error("DigestVerifyInit failed");
         return false;
     }
@@ -309,6 +314,22 @@ SIGN_API bool sign_ecdsa(const char* private_key_path, const char* message_path,
     }
 }
 
+SIGN_API bool sign_ecdsa_p384(const char* private_key_path, const char* message_path, const char* signature_path) noexcept {
+    clear_error();
+    if (private_key_path == nullptr || message_path == nullptr || signature_path == nullptr) return false;
+    try {
+        return sign_impl("ecdsa-p384", private_key_path, message_path, signature_path);
+    } catch (...) { return false; }
+}
+
+SIGN_API bool verify_ecdsa_p384(const char* public_key_path, const char* message_path, const char* signature_path) noexcept {
+    clear_error();
+    if (public_key_path == nullptr || message_path == nullptr || signature_path == nullptr) return false;
+    try {
+        return verify_impl("ecdsa-p384", public_key_path, message_path, signature_path);
+    } catch (...) { return false; }
+}
+
 SIGN_API bool sign_rsapss(const char* private_key_path, const char* message_path, const char* signature_path) noexcept {
     clear_error();
     if (private_key_path == nullptr || message_path == nullptr || signature_path == nullptr) {
@@ -368,14 +389,10 @@ SIGN_API std::uint64_t lab_native_checksum(const unsigned char* input, std::size
 static void print_usage(const char* exe) {
     std::cout << "Usage:\n"
               << "  " << exe << " info\n"
-              << "  " << exe << " keygen --algo <ecdsa-p256|rsa-pss-3072> --priv <priv.pem> --pub <pub.pem>\n"
-              << "  " << exe << " sign   --algo <ecdsa-p256|rsa-pss-3072> --priv <priv.pem> --in <msg.bin> --out <sig.bin> [--hash sha256]\n"
-              << "  " << exe << " verify --algo <ecdsa-p256|rsa-pss-3072> --pub <pub.pem> --in <msg.bin> --sig <sig.bin>\n"
-              << "  " << exe << " --kat  <nist_vectors.json>\n"
-              << "\nExamples:\n"
-              << "  " << exe << " keygen --algo ecdsa-p256 --pub pub.pem --priv priv.pem\n"
-              << "  " << exe << " sign --algo ecdsa-p256 --in msg.bin --out sig.bin --hash sha256\n"
-              << "  " << exe << " verify --algo ecdsa-p256 --in msg.bin --sig sig.bin --pub pub.pem\n";
+              << "  " << exe << " keygen --algo <ecdsa-p256|ecdsa-p384|rsa-pss-3072> --priv <priv.pem> --pub <pub.pem>\n"
+              << "  " << exe << " sign   --algo <ecdsa-p256|ecdsa-p384|rsa-pss-3072> --priv <priv.pem> --in <msg.bin> --out <sig.bin>\n"
+              << "  " << exe << " verify --algo <ecdsa-p256|ecdsa-p384|rsa-pss-3072> --pub <pub.pem> --in <msg.bin> --sig <sig.bin>\n"
+              << "  " << exe << " --kat  <nist_vectors.json>\n";
 }
 
 static std::string extract_json_string(const std::string& json, const std::string& key, size_t start_pos = 0) {
@@ -421,6 +438,8 @@ static bool run_kat(const std::string& kat_file) {
     bool ok = false;
     if (algo == "ecdsa-p256") {
         ok = verify_ecdsa(pub_path.c_str(), msg_path.c_str(), sig_path.c_str());
+    } else if (algo == "ecdsa-p384") {
+        ok = verify_ecdsa_p384(pub_path.c_str(), msg_path.c_str(), sig_path.c_str());
     } else if (algo == "rsa-pss-3072") {
         ok = verify_rsapss(pub_path.c_str(), msg_path.c_str(), sig_path.c_str());
     } else {
@@ -474,6 +493,7 @@ int main(int argc, char* argv[]) {
         }
         bool ok = false;
         if (algo == "ecdsa-p256") ok = generate_ecdsa_keypair("prime256v1", priv.c_str(), pub.c_str());
+        else if (algo == "ecdsa-p384") ok = generate_ecdsa_keypair("secp384r1", priv.c_str(), pub.c_str());
         else if (algo == "rsa-pss-3072") ok = generate_rsa_keypair(3072, priv.c_str(), pub.c_str());
         else std::cerr << "Unsupported algo: " << algo << "\n";
         if (ok) return 0;
@@ -485,6 +505,7 @@ int main(int argc, char* argv[]) {
         }
         bool ok = false;
         if (algo == "ecdsa-p256") ok = sign_ecdsa(priv.c_str(), in_file.c_str(), out_file.c_str());
+        else if (algo == "ecdsa-p384") ok = sign_ecdsa_p384(priv.c_str(), in_file.c_str(), out_file.c_str());
         else if (algo == "rsa-pss-3072") ok = sign_rsapss(priv.c_str(), in_file.c_str(), out_file.c_str());
         else std::cerr << "Unsupported algo: " << algo << "\n";
         if (ok) return 0;
@@ -496,6 +517,7 @@ int main(int argc, char* argv[]) {
         }
         bool ok = false;
         if (algo == "ecdsa-p256") ok = verify_ecdsa(pub.c_str(), in_file.c_str(), sig_file.c_str());
+        else if (algo == "ecdsa-p384") ok = verify_ecdsa_p384(pub.c_str(), in_file.c_str(), sig_file.c_str());
         else if (algo == "rsa-pss-3072") ok = verify_rsapss(pub.c_str(), in_file.c_str(), sig_file.c_str());
         else std::cerr << "Unsupported algo: " << algo << "\n";
         
